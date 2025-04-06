@@ -156,8 +156,9 @@ def parse_course_results(classlist_html: str):
             kwargs = {k: v or None for k, v in zip(norm_headings, r) if k}
             courses[name].append(Course(name=name, topic=None, **kwargs))
         elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
-            courses[name][-1].topic = t = r[1]
+            t = r[1]
             assert t.startswith('Topic: '), f'Expected "Topic:", but got: {t}'
+            courses[name][-1].topic = t.split(': ', 1)[-1]
         else:
             assert r == [''] * 3, f'Unexpected row: {r}'
 
@@ -184,12 +185,25 @@ def main():
     classlist_html = next(iter(course_tree)).text
     courses = parse_course_results(classlist_html)
 
+    table = []
+    table_headers = {
+        'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
+        'ClassNr': lambda s: s.classnr,
+        'Section': lambda s: s.sect,
+        'Days': lambda s: s.time,
+        'Time': lambda s: s.time,
+        'Enrolled': lambda s: s.enrltot,
+    }
+
     for name, sections in courses.items():
-        print()
-        print(name)
-        print()
+        # print(f'\n{name}\n')
         for section in sections:
-            print('  ', section)
+            # print('  ', section)
+            table.append([f(section) for f in table_headers.values()])
+
+    import tabulate
+
+    print(tabulate.tabulate(table, headers=table_headers.keys()))
 
 
 if __name__ == '__main__':
