@@ -4,6 +4,7 @@ import pickle
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+from dataclasses import make_dataclass
 
 from dotenv import load_dotenv
 from lxml import html
@@ -16,6 +17,11 @@ PASSWORD = os.environ.get('CSU_PASSWORD')
 assert USERNAME and PASSWORD
 
 import requests
+
+
+def normalize(s: str):
+    s = s.strip().lower()
+    return re.sub(r'\W|^(?=\d)', '', s)
 
 
 class CampusNet:
@@ -149,16 +155,25 @@ def main():
         elif len(r) == 13:
             d[course].append(r)
 
+    field_names = [
+        'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date', 'Days',
+        'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
+    ]
+    field_names = list(map(normalize, field_names))
+    norm_headings = list(map(normalize, headings))
+
+    Course = make_dataclass('Course',
+                            [('name', str)] + [(name, str)
+                                               for name in field_names])
+
     for course, sections in d.items():
         print()
-        print(course)
+        print('>>>', course)
         print()
         for s in sections:
-            s = [v if v else None for v in s]
-            s = dict(zip(headings, s))
-            print('   ', s)
-
-    return
+            s = {k: v or None for k, v in zip(norm_headings, s) if k}
+            c = Course(**s, name=course)
+            print(' ', c)
 
 
 if __name__ == '__main__':
