@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 import os
+import pickle
 import re
+import xml.etree.ElementTree as ET
+from collections import defaultdict
 
 from dotenv import load_dotenv
+from lxml import html
 
 load_dotenv()
 
@@ -108,22 +112,53 @@ class CampusNet:
             params=paramsGet,
             headers=self.headers)
 
-        return response.text
+        return ET.fromstring(response.text)
 
 
 def main():
-    c = CampusNet()
-    c.login(USERNAME, PASSWORD)
-
-    # terms = c.get_terms()
-    # print('Terms:', terms)
-
     terms = ['114-Fall 2025', '115-Spr 2026']
-    for term in terms:
-        # r = c.subject_list(term)
-        r = c.search_courses(term, 'STA')
-        print(r)
-        break
+    term = terms[0]
+    subject = 'STA'
+    subject = 'CIS'
+
+    courses_pkl = f'{term}_{subject}.pkl'
+
+    if not os.path.exists(courses_pkl):
+        print('Logging into campusnet...')
+        c = CampusNet()
+        c.login(USERNAME, PASSWORD)
+        r = c.search_courses(term, subject)
+        print('Writing cache to', courses_pkl)
+        pickle.dump(r, open(courses_pkl, 'wb'))
+
+    courses = pickle.load(open(courses_pkl, 'rb'))
+
+    classList = next(iter(courses)).text
+    table = html.fromstring(classList)
+
+    headings, *rows = [[
+        ''.join(td.itertext()).strip() for td in tr.iter('td')
+    ] for tr in table.iter('tr')]
+
+    # group sections by course
+    d = defaultdict(list)
+    course = None
+    for r in rows:
+        if len(r) == 1:  # course title, ie: CIS  895 Doctoral Research
+            course = r[0]
+        elif len(r) == 13:
+            d[course].append(r)
+
+    for course, sections in d.items():
+        print()
+        print(course)
+        print()
+        for s in sections:
+            s = [v if v else None for v in s]
+            s = dict(zip(headings, s))
+            print('   ', s)
+
+    return
 
 
 if __name__ == '__main__':
