@@ -50,6 +50,24 @@ class CampusNet:
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!')
 
+    def subject_list(self, term, acad='GRAD'):
+        paramsGet = {
+            "college": "",
+            "subject": "",
+            "function": "getSubjectsRegular",
+            "acad": acad,
+            "AJAXClassName": "AJAX.Ajax_ClassSearch",
+            "location": "",
+            "term": term,
+            "sid": "0.47412165428294384"
+        }
+        response = self.session.get(
+            "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
+            params=paramsGet,
+            headers=self.headers)
+
+        return response.text  # XML
+
     def get_terms(self):
         '''visits the search registration page showing available terms'''
 
@@ -69,8 +87,15 @@ class CampusNet:
 def main():
     c = CampusNet()
     c.login(USERNAME, PASSWORD)
-    terms = c.get_terms()
-    print('Terms:', terms)
+
+    # terms = c.get_terms()
+    # print('Terms:', terms)
+
+    terms = ['114-Fall 2025', '115-Spr 2026']
+    for term in terms:
+        r = c.subject_list(term)
+        print(r)
+        break
 
 
 if __name__ == '__main__':
