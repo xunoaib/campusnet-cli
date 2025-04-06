@@ -146,12 +146,15 @@ def parse_course_results(course_tree: ET.Element):
     courses = defaultdict(list)
     name = None
     for r in rows:
+        print(r)
         if len(r) == 1:  # course title, ie: CIS  895 Doctoral Research
             name = r[0]
         elif len(r) == 13:
             assert name is not None, 'Found section before course name'
             kwargs = {k: v or None for k, v in zip(norm_headings, r) if k}
             courses[name].append(Course(name=name, **kwargs))
+        else:
+            assert r == [''] * 3, f'Unexpected row: {r}'
 
     return dict(courses)
 
