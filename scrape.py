@@ -83,6 +83,33 @@ class CampusNet:
 
         raise Exception('Failed to find terms on search registration page')
 
+    def search_courses(self, term, subject, acad='GRAD'):
+        paramsGet = {
+            "thu": "N",
+            "tue": "N",
+            "subject": subject,
+            "sat": "N",
+            "AJAXClassName": "AJAX.Ajax_ClassSearch",
+            "starttime": "ALL",
+            "acadVal": acad,
+            "mon": "N",
+            "sun": "N",
+            "sid": "0.6793350056780008",
+            "termVal": term,
+            "function": "getClasessResults",
+            "wed": "N",
+            "location": "ALL",
+            "locations": "undefined",
+            "fri": "N",
+            "incl": "I"
+        }
+        response = self.session.get(
+            "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
+            params=paramsGet,
+            headers=self.headers)
+
+        return response.text
+
 
 def main():
     c = CampusNet()
@@ -93,7 +120,8 @@ def main():
 
     terms = ['114-Fall 2025', '115-Spr 2026']
     for term in terms:
-        r = c.subject_list(term)
+        # r = c.subject_list(term)
+        r = c.search_courses(term, 'STA')
         print(r)
         break
 
