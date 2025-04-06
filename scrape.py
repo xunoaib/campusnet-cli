@@ -149,6 +149,7 @@ def parse_course_results(course_tree: ET.Element):
         if len(r) == 1:  # course title, ie: CIS  895 Doctoral Research
             course = r[0]
         elif len(r) == 13:
+            assert course is not None, 'Found section before course name'
             d[course].append(r)
 
     results = defaultdict(list)
