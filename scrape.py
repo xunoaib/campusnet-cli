@@ -121,25 +121,9 @@ class CampusNet:
         return ET.fromstring(response.text)
 
 
-def main():
-    terms = ['114-Fall 2025', '115-Spr 2026']
-    term = terms[0]
-    subject = 'STA'
-    subject = 'CIS'
+def parse_course_results(course_tree: ET.Element):
 
-    courses_pkl = f'{term}_{subject}.pkl'
-
-    if not os.path.exists(courses_pkl):
-        print('Logging into campusnet...')
-        c = CampusNet()
-        c.login(USERNAME, PASSWORD)
-        r = c.search_courses(term, subject)
-        print('Writing cache to', courses_pkl)
-        pickle.dump(r, open(courses_pkl, 'wb'))
-
-    courses = pickle.load(open(courses_pkl, 'rb'))
-
-    classList = next(iter(courses)).text
+    classList = next(iter(course_tree)).text
     table = html.fromstring(classList)
 
     headings, *rows = [[
@@ -171,9 +155,29 @@ def main():
         print('>>>', course)
         print()
         for s in sections:
-            s = {k: v or None for k, v in zip(norm_headings, s) if k}
-            c = Course(**s, name=course)
+            kw = {k: v or None for k, v in zip(norm_headings, s) if k}
+            c = Course(name=course, **kw)
             print(' ', c)
+
+
+def main():
+    terms = ['114-Fall 2025', '115-Spr 2026']
+    term = terms[0]
+    subject = 'STA'
+    subject = 'CIS'
+
+    courses_pkl = f'{term}_{subject}.pkl'
+
+    if not os.path.exists(courses_pkl):
+        print('Logging into campusnet...')
+        c = CampusNet()
+        c.login(USERNAME, PASSWORD)
+        r = c.search_courses(term, subject)
+        print('Writing cache to', courses_pkl)
+        pickle.dump(r, open(courses_pkl, 'wb'))
+
+    course_tree = pickle.load(open(courses_pkl, 'rb'))
+    parse_course_results(course_tree)
 
 
 if __name__ == '__main__':
