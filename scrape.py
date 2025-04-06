@@ -30,7 +30,11 @@ COURSE_SEC_FIELDS = list(
         'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
     ]))
 
-_course_fields = [('name', str)] + [(name, str) for name in COURSE_SEC_FIELDS]
+_course_fields = [
+    ('name', str),  # course name
+    ('topic', str),  # special topic (if applicable)
+] + [(name, str) for name in COURSE_SEC_FIELDS]
+
 Course = make_dataclass('Course', _course_fields)
 
 
@@ -131,28 +135,29 @@ class CampusNet:
         return ET.fromstring(response.text)
 
 
-def parse_course_results(course_tree: ET.Element):
+def parse_course_results(classlist_html: str):
+    '''Parses an HTML table'''
 
-    classList = next(iter(course_tree)).text
-    table = html.fromstring(classList)
+    table = html.fromstring(classlist_html)
+    assert table.tag == 'table', f'Expected table tag, got: {table.tag}'
 
     headings, *rows = [[
         ''.join(td.itertext()).strip() for td in tr.iter('td')
     ] for tr in table.iter('tr')]
-
     norm_headings = list(map(normalize, headings))
 
-    # group sections by course
     courses = defaultdict(list)
     name = None
     for r in rows:
-        print(r)
         if len(r) == 1:  # course title, ie: CIS  895 Doctoral Research
             name = r[0]
-        elif len(r) == 13:
+        elif len(r) == 13:  # course info, ie: dates, times, enrollment
             assert name is not None, 'Found section before course name'
             kwargs = {k: v or None for k, v in zip(norm_headings, r) if k}
-            courses[name].append(Course(name=name, **kwargs))
+            courses[name].append(Course(name=name, topic=None, **kwargs))
+        elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
+            courses[name][-1].topic = t = r[1]
+            assert t.startswith('Topic: '), f'Expected "Topic:", but got: {t}'
         else:
             assert r == [''] * 3, f'Unexpected row: {r}'
 
@@ -176,9 +181,15 @@ def main():
         pickle.dump(r, open(courses_pkl, 'wb'))
 
     course_tree = pickle.load(open(courses_pkl, 'rb'))
-    courses = parse_course_results(course_tree)
+    classlist_html = next(iter(course_tree)).text
+    courses = parse_course_results(classlist_html)
 
-    print(courses)
+    for name, sections in courses.items():
+        print()
+        print(name)
+        print()
+        for section in sections:
+            print('  ', section)
 
 
 if __name__ == '__main__':
