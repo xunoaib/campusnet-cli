@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-
 import os
+import re
 
 from dotenv import load_dotenv
 
@@ -53,10 +53,27 @@ class CampusNet:
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!')
 
+    def get_terms(self):
+        '''visits the search registration page showing available terms'''
+
+        r = self.session.get(
+            'https://campusnet.csuohio.edu/sec/classsearch/search_reg.jsp')
+
+        text_start = '<!--  Display Term Choices'
+        text_end = '<!--  Display Career Choices'
+        pattern = re.escape(text_start) + '(.*?)' + re.escape(text_end)
+
+        if text := re.search(pattern, r.text, re.DOTALL):
+            return re.findall('value="(.*?)"', text.group(1))
+
+        raise Exception('Failed to find terms on search registration page')
+
 
 def main():
     c = CampusNet()
     c.login(USERNAME, PASSWORD)
+    terms = c.get_terms()
+    print('Terms:', terms)
 
 
 if __name__ == '__main__':
