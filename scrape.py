@@ -24,6 +24,16 @@ def normalize(s: str):
     return re.sub(r'\W|^(?=\d)', '', s)
 
 
+COURSE_SEC_FIELDS = list(
+    map(normalize, [
+        'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date', 'Days',
+        'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
+    ]))
+
+_course_fields = [('name', str)] + [(name, str) for name in COURSE_SEC_FIELDS]
+Course = make_dataclass('Course', _course_fields)
+
+
 class CampusNet:
 
     headers = {
@@ -130,6 +140,8 @@ def parse_course_results(course_tree: ET.Element):
         ''.join(td.itertext()).strip() for td in tr.iter('td')
     ] for tr in table.iter('tr')]
 
+    norm_headings = list(map(normalize, headings))
+
     # group sections by course
     d = defaultdict(list)
     course = None
@@ -138,17 +150,6 @@ def parse_course_results(course_tree: ET.Element):
             course = r[0]
         elif len(r) == 13:
             d[course].append(r)
-
-    field_names = [
-        'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date', 'Days',
-        'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
-    ]
-    field_names = list(map(normalize, field_names))
-    norm_headings = list(map(normalize, headings))
-
-    Course = make_dataclass('Course',
-                            [('name', str)] + [(name, str)
-                                               for name in field_names])
 
     results = defaultdict(list)
     for name, sections in d.items():
