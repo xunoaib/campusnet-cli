@@ -150,14 +150,18 @@ def parse_course_results(course_tree: ET.Element):
                             [('name', str)] + [(name, str)
                                                for name in field_names])
 
-    for course, sections in d.items():
+    results = defaultdict(list)
+    for name, sections in d.items():
         print()
-        print('>>>', course)
+        print('>>>', name)
         print()
         for s in sections:
             kw = {k: v or None for k, v in zip(norm_headings, s) if k}
-            c = Course(name=course, **kw)
+            c = Course(name=name, **kw)
+            results[name].append(c)
             print(' ', c)
+
+    return dict(results)
 
 
 def main():
@@ -177,7 +181,9 @@ def main():
         pickle.dump(r, open(courses_pkl, 'wb'))
 
     course_tree = pickle.load(open(courses_pkl, 'rb'))
-    parse_course_results(course_tree)
+    courses = parse_course_results(course_tree)
+
+    print(courses)
 
 
 if __name__ == '__main__':
