@@ -333,7 +333,7 @@ def parse_course_details_xml(response_xml: str):
 
     props = {}
     for td1, td2 in pairwise(first_table_tds):
-        if td1.endswith(':'):
+        if td1 and td1.endswith(':'):
             props[td1[:-1]] = td2.strip()
 
     # extract course description (very messily)
@@ -367,7 +367,7 @@ def print_courses(courses: dict[str, list[Course]]):
 
 def main():
     net = CampusNet(USERNAME, PASSWORD)
-    # net.login()
+    net.login()
 
     terms = ['114-Fall 2025', '115-Spr 2026']
     # terms = net.terms()
@@ -375,19 +375,27 @@ def main():
     subjects = ['CIS', 'STA']
     # subjects = net.subjects(terms[1])
 
-    # Show course details
-    details = net.class_details('114', '2659', acad='GRAD')
-    print(details)
-    exit()
+    # print(net.class_details('114', '2659', acad='GRAD')); exit()
 
     acad = DEFAULT_ACAD
 
+    # retrieve high-level course listings
+    all_sections = []
     for term in terms:
-        # subjects = net.subjects(term)
+        # subjects = net.subjects(term)  # ALL subjects
         for subject in subjects:
             courses = net.find_courses(term, subject, acad=acad, cache=True)
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
+
+            # add to all sections
+            for sections in courses.values():
+                all_sections += [(term, subject, section)
+                                 for section in sections]
+
+    # retrieve course details
+    for term, subject, section in all_sections:
+        net.class_details(term.split('-')[0], section.classnr, acad)
 
 
 if __name__ == '__main__':
