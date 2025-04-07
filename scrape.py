@@ -5,7 +5,9 @@ import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import make_dataclass
+from pathlib import Path
 
+import tabulate
 from dotenv import load_dotenv
 from lxml import html
 
@@ -40,6 +42,7 @@ Course = make_dataclass('Course', _course_fields)
 
 class CampusNet:
 
+    cachedir = Path(__file__).parent / 'cache'
     headers = {
         "Accept": "*/*",
         "Priority": "u=0",
@@ -73,8 +76,8 @@ class CampusNet:
 
         paramsPost = {
             "Submit": "Login",
-            "pwd": password,
-            "user": username,
+            "pwd": self.password,
+            "user": self.username,
             "version": "136.0",
             "backdoor": "N",
             "browser": "Firefox"
@@ -85,7 +88,7 @@ class CampusNet:
             headers=self.headers)
 
         if 'Login in progress' not in response.text:
-            raise Exception('Login failed!')
+            raise Exception('Login failed!\n%s' % response.text)
 
     def subject_list(self, term, acad='GRAD'):
         paramsGet = {
@@ -120,7 +123,30 @@ class CampusNet:
 
         raise Exception('Failed to find terms on search registration page')
 
-    def search_courses(self, term, subject, acad='GRAD'):
+    def find_courses(self, term, subject, acad='GRAD', cache=True):
+        '''Retrieves a course list from CampusNet or from local cache'''
+
+        def retrieve_xml():
+            if not cache:
+                return self._search_courses(term, subject, acad)
+
+            path = self.cachedir / 'search' / f'{term}_{subject}.xml'
+
+            if path.exists():
+                return open(path).read()
+
+            path.parent.mkdir(parents=True, exist_ok=True)
+            resp_text = self._search_courses(term, subject, acad)
+
+            print('Caching results to', path)
+            open(path, 'w').write(resp_text)
+            return resp_text
+
+        return parse_course_search_xml(retrieve_xml())
+
+    def _search_courses(self, term, subject, acad):
+        '''Retrieves a course list from CampusNet'''
+
         paramsGet = {
             "thu": "N",
             "tue": "N",
@@ -145,13 +171,23 @@ class CampusNet:
             params=paramsGet,
             headers=self.headers)
 
-        return ET.fromstring(response.text)
+        assert response.ok, 'HTTP Error: %d %s' % (
+            response.status_code,
+            response.text,
+        )
+        return response.text
 
 
-def parse_course_results(classlist_html: str):
-    '''Parses an HTML table'''
+def parse_course_search_xml(response_xml: str):
+    '''Constructs a dictionary of course names to sections given an XML
+    response from the course search endpoint'''
 
-    table = html.fromstring(classlist_html)
+    root = ET.fromstring(response_xml)
+    classlist = root.find('ClassList')
+    if classlist is None or not classlist.text:
+        raise Exception('Expected ClassList tag in search response')
+
+    table = html.fromstring(classlist.text)
     assert table.tag == 'table', f'Expected table tag, got: {table.tag}'
 
     headings, *rows = [[
@@ -178,27 +214,7 @@ def parse_course_results(classlist_html: str):
     return dict(courses)
 
 
-def main():
-    terms = ['114-Fall 2025', '115-Spr 2026']
-    term = terms[0]
-    subject = 'STA'
-    subject = 'CIS'
-
-    courses_pkl = f'{term}_{subject}.pkl'
-
-    if not os.path.exists(courses_pkl):
-        print('Logging into campusnet...')
-        c = CampusNet()
-        c.login(USERNAME, PASSWORD)
-        r = c.search_courses(term, subject)
-        print('Writing cache to', courses_pkl)
-        pickle.dump(r, open(courses_pkl, 'wb'))
-
-    course_tree = pickle.load(open(courses_pkl, 'rb'))
-    classlist_html = next(iter(course_tree)).text
-    courses = parse_course_results(classlist_html)
-
-    table = []
+def print_courses(courses: dict[str, list[Course]]):
     table_headers = {
         'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
         'ClassNr': lambda s: s.classnr,
@@ -208,15 +224,26 @@ def main():
         'Enrolled': lambda s: s.enrltot,
     }
 
-    for name, sections in courses.items():
-        # print(f'\n{name}\n')
+    table = []
+    for sections in courses.values():
         for section in sections:
-            # print('  ', section)
             table.append([f(section) for f in table_headers.values()])
 
-    import tabulate
+    print(tabulate.tabulate(table, headers=tuple(table_headers.keys())))
 
-    print(tabulate.tabulate(table, headers=table_headers.keys()))
+
+def main():
+    terms = ['114-Fall 2025', '115-Spr 2026']
+    term = terms[1]
+    subject = 'STA'
+    subject = 'CIS'
+
+    net = CampusNet(USERNAME, PASSWORD)
+    net.login()
+
+    courses = net.find_courses(term, subject, cache=True)
+
+    print_courses(courses)
 
 
 if __name__ == '__main__':
