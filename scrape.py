@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -122,14 +123,16 @@ class CampusNet:
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!\n%s' % response.text)
 
-    def subjects(self, term, acad=DEFAULT_ACAD, load_cache=True):
+    def subjects(self, term, acad=DEFAULT_ACAD, load_cache=True) -> list[str]:
 
-        def parse(xml: str):
+        def parse(xml: str) -> list[str]:
             root = ET.fromstring(xml)
             subject_list = root.find('SubjectList')
             if subject_list is None:
                 return []
-            return [c.text for c in subject_list if c.tag == 'Subject']
+            return [
+                c.text for c in subject_list if c.tag == 'Subject' and c.text
+            ]
 
         path = self.cachedir / f'subjects_{term}_{acad}.txt'
 
@@ -372,47 +375,70 @@ def print_courses(courses: dict[str, list[Course]]):
         for section in sections:
             table.append([f(section) for f in table_headers.values()])
 
-    print(tabulate.tabulate(table, headers=tuple(table_headers.keys())))
+    if table:
+        print(tabulate.tabulate(table, headers=tuple(table_headers.keys())))
 
 
 def main():
 
-    net = CampusNet(USERNAME, PASSWORD)
+    parser = argparse.ArgumentParser(
+        description="Retrieve course listings and details from CampusNet.")
+    parser.add_argument('--username',
+                        default=USERNAME,
+                        help="Your CampusNet username")
+    parser.add_argument('--password',
+                        default=PASSWORD,
+                        help="Your CampusNet password")
+    parser.add_argument('--terms',
+                        '-t',
+                        nargs='*',
+                        default=['114-Fall 2025', '115-Spr 2026'],
+                        help="List of terms (e.g., '114-Fall 2025')")
+    parser.add_argument('--subjects',
+                        '-s',
+                        nargs='*',
+                        default=['CIS', 'STA'],
+                        help="List of subjects (e.g., 'CIS', 'STA')")
+    parser.add_argument('--acad',
+                        default=DEFAULT_ACAD,
+                        help="Academic career level (e.g., 'GRAD', 'UGRD')")
+    parser.add_argument('--no-cache',
+                        '-n',
+                        action='store_true',
+                        help="Disable cache usage for course listings")
+
+    args = parser.parse_args()
+
+    net = CampusNet(args.username, args.password)
     net.login()
 
-    terms = ['114-Fall 2025', '115-Spr 2026']
-    # terms = net.terms()
+    if not args.terms:
+        print(f'\n\033[93;1m# Available Terms\033[0m\n')
+        for t in net.terms(load_cache=not args.no_cache):
+            print(t)
+        return
 
-    subjects = ['CIS', 'STA']
-    # subjects = net.subjects(terms[1])
+    if not args.subjects:
+        print(f'\n\033[93;1m# Available Subjects for {args.terms[0]}\033[0m\n')
+        subjects = net.subjects(args.terms[0],
+                                args.acad,
+                                load_cache=not args.no_cache)
+        print(', '.join(subjects))
 
-    acad = DEFAULT_ACAD
-
-    # r = net._search_courses(terms[0], subjects[0], 'GRAD')
-    # print(r)
-    # exit()
-    #
-    # print(net.class_details('114', '2644', acad='GRAD'))
-    # print(net.class_details('115', '5118', acad='GRAD'))
-
-    # retrieve high-level course listings
     all_sections = []
-    for term in terms:
-        # subjects = net.subjects(term)  # ALL subjects
-        for subject in subjects:
+    for term in args.terms:
+        for subject in args.subjects:
             courses = net.find_courses(term,
                                        subject,
-                                       acad=acad,
-                                       load_cache=True)
+                                       acad=args.acad,
+                                       load_cache=not args.no_cache)
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
 
-            # add to all sections
             for sections in courses.values():
                 all_sections += [(term, subject, section)
                                  for section in sections]
 
-    # retrieve course details
     for term, subject, section in all_sections:
         if not section.classnr:
             print(
@@ -421,11 +447,13 @@ def main():
             continue
         try:
             termNbr = term.split('-')[0]
-            details = net.class_details(termNbr, section.classnr, acad)
+            details = net.class_details(termNbr,
+                                        section.classnr,
+                                        acad=args.acad)
         except Exception as exc:
             raise Exception(
                 f'Error parsing course details for: {term} {subject} {section}'
-            )
+            ) from exc
 
 
 if __name__ == '__main__':
