@@ -22,18 +22,39 @@ def normalize(s: str):
     return re.sub(r'\W|^(?=\d)', '', s)
 
 
-COURSE_SEC_FIELDS = list(
-    map(normalize, [
-        'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date', 'Days',
-        'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
-    ]))
+@dataclass
+class Course:
+    name: str
+    topic: str
+    enrl: str
+    det: str
+    classnr: str
+    sect: str
+    begindateenddate: str
+    days: str
+    time: str
+    room: str
+    instructor: str
+    comp: str
+    stat: str
+    enrltot: str
 
-_course_fields = [
-    ('name', str),  # course name
-    ('topic', str),  # special topic (if applicable)
-] + [(name, str) for name in COURSE_SEC_FIELDS]
 
-Course = make_dataclass('Course', _course_fields)
+def generate_course_class():
+    '''This can help regenerate course fields if they ever change'''
+
+    COURSE_SEC_FIELDS = list(
+        map(normalize, [
+            'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date',
+            'Days', 'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
+        ]))
+
+    _course_fields = [
+        ('name', str),  # course name
+        ('topic', str),  # special topic (if applicable)
+    ] + [(name, str) for name in COURSE_SEC_FIELDS]
+
+    return make_dataclass('Course', _course_fields)
 
 
 class CampusNet:
