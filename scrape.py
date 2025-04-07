@@ -227,9 +227,18 @@ def parse_course_search_xml(response_xml: str):
     response from the course search endpoint'''
 
     root = ET.fromstring(response_xml)
+
+    error_code = root.find('ErrorCode')
+    if error_code is not None:
+        if error_code.text == 'CSTCLS_NOCL2':
+            print('WARNING: No classes found')
+            return {}
+        raise Exception(f'API Error:\n{response_xml}')
+
     classlist = root.find('ClassList')
     if classlist is None or not classlist.text:
-        raise Exception('Expected ClassList tag in search response')
+        raise Exception(
+            f'Expected ClassList tag in search response:\n{response_xml}')
 
     table = html.fromstring(classlist.text)
     assert table.tag == 'table', f'Expected table tag, got: {table.tag}'
