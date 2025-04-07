@@ -19,20 +19,20 @@ PASSWORD = os.environ.get('CSU_PASSWORD')
 
 @dataclass
 class Course:
-    name: str
-    topic: str
-    enrl: str
-    det: str
-    classnr: str
-    sect: str
-    begindateenddate: str
-    days: str
-    time: str
-    room: str
-    instructor: str
-    comp: str
-    stat: str
-    enrltot: str
+    name: str | None
+    topic: str | None
+    enrl: str | None
+    det: str | None
+    classnr: str | None
+    sect: str | None
+    begindateenddate: str | None
+    days: str | None
+    time: str | None
+    room: str | None
+    instructor: str | None
+    comp: str | None
+    stat: str | None
+    enrltot: str | None
 
 
 def generate_course_class():
