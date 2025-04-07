@@ -215,7 +215,6 @@ class CampusNet:
             "acadVal": acad,
             "mon": "N",
             "sun": "N",
-            "sid": "0.6793350056780008",
             "termVal": term,
             "function": "getClasessResults",
             "wed": "N",
