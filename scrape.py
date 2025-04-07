@@ -219,7 +219,7 @@ def print_courses(courses: dict[str, list[Course]]):
         'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
         'ClassNr': lambda s: s.classnr,
         'Section': lambda s: s.sect,
-        'Days': lambda s: s.time,
+        'Days': lambda s: s.days,
         'Time': lambda s: s.time,
         'Enrolled': lambda s: s.enrltot,
     }
@@ -234,16 +234,16 @@ def print_courses(courses: dict[str, list[Course]]):
 
 def main():
     terms = ['114-Fall 2025', '115-Spr 2026']
-    term = terms[1]
-    subject = 'STA'
-    subject = 'CIS'
+    subjects = ['CIS', 'STA']
 
     net = CampusNet(USERNAME, PASSWORD)
     net.login()
 
-    courses = net.find_courses(term, subject, cache=True)
-
-    print_courses(courses)
+    for term in terms:
+        for subject in subjects:
+            courses = net.find_courses(term, subject, cache=True)
+            print(f'\n# {term}: {subject}\n')
+            print_courses(courses)
 
 
 if __name__ == '__main__':
