@@ -217,11 +217,11 @@ def parse_course_search_xml(response_xml: str):
 def print_courses(courses: dict[str, list[Course]]):
     table_headers = {
         'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
-        'ClassNr': lambda s: s.classnr,
-        'Section': lambda s: s.sect,
         'Days': lambda s: s.days,
         'Time': lambda s: s.time,
         'Enrolled': lambda s: s.enrltot,
+        'ClassNr': lambda s: s.classnr,
+        'Section': lambda s: s.sect,
     }
 
     table = []
@@ -242,7 +242,7 @@ def main():
     for term in terms:
         for subject in subjects:
             courses = net.find_courses(term, subject, cache=True)
-            print(f'\n# {term}: {subject}\n')
+            print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
 
 
