@@ -122,7 +122,7 @@ class CampusNet:
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!\n%s' % response.text)
 
-    def subjects(self, term, acad=DEFAULT_ACAD, cache=True):
+    def subjects(self, term, acad=DEFAULT_ACAD, load_cache=True):
 
         def parse(xml: str):
             root = ET.fromstring(xml)
@@ -133,7 +133,7 @@ class CampusNet:
 
         path = self.cachedir / f'subjects_{term}_{acad}.txt'
 
-        if cache and path.exists():
+        if load_cache and path.exists():
             with open(path) as f:
                 return parse(f.read())
 
@@ -152,19 +152,19 @@ class CampusNet:
             params=paramsGet,
             headers=self.headers)
 
-        if cache:
+        if load_cache:
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, 'w') as f:
                 f.write(response.text)
 
         return parse(response.text)
 
-    def terms(self, cache=True):
+    def terms(self, load_cache=True):
         '''Visits the course search page and returns available terms'''
 
         path = self.cachedir / 'terms.txt'
 
-        if cache and path.exists():
+        if load_cache and path.exists():
             with open(path) as f:
                 return [line.strip() for line in f if line.strip()]
 
@@ -184,13 +184,13 @@ class CampusNet:
 
         raise Exception('Failed to find terms on search registration page')
 
-    def find_courses(self, term, subject, acad=DEFAULT_ACAD, cache=True):
+    def find_courses(self, term, subject, acad=DEFAULT_ACAD, load_cache=True):
         '''Retrieves a course list from CampusNet or from local cache'''
 
         def retrieve_xml():
             path = self.cachedir / 'search' / f'{term}_{subject}.xml'
 
-            if cache and path.exists():
+            if load_cache and path.exists():
                 return open(path).read()
 
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -235,10 +235,10 @@ class CampusNet:
         )
         return response.text
 
-    def class_details(self, termNbr, classNbr, acad, cache=True):
+    def class_details(self, termNbr, classNbr, acad, load_cache=True):
 
         def process():
-            if cache and path.exists():
+            if load_cache and path.exists():
                 return parse_course_details_xml(open(path).read())
 
             resp_xml = query()
@@ -395,7 +395,10 @@ def main():
     for term in terms:
         # subjects = net.subjects(term)  # ALL subjects
         for subject in subjects:
-            courses = net.find_courses(term, subject, acad=acad, cache=True)
+            courses = net.find_courses(term,
+                                       subject,
+                                       acad=acad,
+                                       load_cache=True)
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
 
