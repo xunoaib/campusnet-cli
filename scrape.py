@@ -239,15 +239,21 @@ def parse_course_search_xml(response_xml: str):
     ] for tr in table.iter('tr')]
     norm_headings = list(map(normalize, headings))
 
+    print(headings)
+
+    _fields = [(f, str) for f in norm_headings + ['name', 'topic'] if f]
+    Section = make_dataclass('Section', _fields)
+
     courses = defaultdict(list)
     name = None
     for r in rows:
+        print(r, len(r))
         if len(r) == 1:  # course title, ie: CIS  895 Doctoral Research
             name = r[0]
-        elif len(r) == 13:  # course info, ie: dates, times, enrollment
+        elif len(r) == len(headings):  # course info
             assert name is not None, 'Found section before course name'
             kwargs = {k: v or None for k, v in zip(norm_headings, r) if k}
-            courses[name].append(Course(name=name, topic=None, **kwargs))
+            courses[name].append(Section(name=name, topic=None, **kwargs))
         elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
             assert name is not None, 'Found topic before course name'
             t = r[1]
@@ -285,9 +291,8 @@ def main():
     net = CampusNet(USERNAME, PASSWORD)
     net.login()
 
-    print(net.terms())
-    print(net.subjects(terms[0]))
-    exit(0)
+    terms = net.terms()
+    subjects = net.subjects(terms[1])
 
     for term in terms:
         for subject in subjects:
