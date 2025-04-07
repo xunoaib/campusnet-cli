@@ -13,6 +13,8 @@ from lxml import html
 
 load_dotenv()
 
+# Available acads: UGRD, GRAD, LAW, CNED
+
 USERNAME = os.environ.get('CSU_USERNAME')
 PASSWORD = os.environ.get('CSU_PASSWORD')
 DEFAULT_ACAD = os.environ.get('DEFAULT_ACAD', 'GRAD')
@@ -291,22 +293,21 @@ def print_courses(courses: dict[str, list[Course]]):
 
 
 def main():
-    terms = ['114-Fall 2025', '115-Spr 2026']
-    subjects = ['CIS', 'STA']
-    acads = ['UGRD', 'GRAD', 'LAW', 'CNED']
-
     net = CampusNet(USERNAME, PASSWORD)
     net.login()
 
-    terms = net.terms()
-    subjects = net.subjects(terms[1])
+    terms = ['114-Fall 2025', '115-Spr 2026']
+    # terms = net.terms()
+
+    subjects = ['CIS', 'STA']
+    # subjects = net.subjects(terms[1])
+
+    acad = DEFAULT_ACAD
 
     for term in terms:
+        subjects = net.subjects(term)
         for subject in subjects:
-            courses = net.find_courses(term,
-                                       subject,
-                                       acad=DEFAULT_ACAD,
-                                       cache=True)
+            courses = net.find_courses(term, subject, acad=acad, cache=True)
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
 
