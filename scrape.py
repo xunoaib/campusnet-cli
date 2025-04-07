@@ -15,6 +15,7 @@ load_dotenv()
 
 USERNAME = os.environ.get('CSU_USERNAME')
 PASSWORD = os.environ.get('CSU_PASSWORD')
+DEFAULT_ACAD = os.environ.get('DEFAULT_ACAD', 'GRAD')
 
 
 @dataclass
@@ -103,7 +104,7 @@ class CampusNet:
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!\n%s' % response.text)
 
-    def subject_list(self, term, acad='GRAD'):
+    def subject_list(self, term, acad=DEFAULT_ACAD):
         paramsGet = {
             "college": "",
             "subject": "",
@@ -136,7 +137,7 @@ class CampusNet:
 
         raise Exception('Failed to find terms on search registration page')
 
-    def find_courses(self, term, subject, acad='GRAD', cache=True):
+    def find_courses(self, term, subject, acad=DEFAULT_ACAD, cache=True):
         '''Retrieves a course list from CampusNet or from local cache'''
 
         def retrieve_xml():
@@ -249,13 +250,17 @@ def print_courses(courses: dict[str, list[Course]]):
 def main():
     terms = ['114-Fall 2025', '115-Spr 2026']
     subjects = ['CIS', 'STA']
+    acads = ['UGRD', 'GRAD', 'LAW', 'CNED']
 
     net = CampusNet(USERNAME, PASSWORD)
     net.login()
 
     for term in terms:
         for subject in subjects:
-            courses = net.find_courses(term, subject, cache=True)
+            courses = net.find_courses(term,
+                                       subject,
+                                       acad=DEFAULT_ACAD,
+                                       cache=True)
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
 
