@@ -37,6 +37,7 @@ class Course:
     comp: str | None
     stat: str | None
     enrltot: str | None
+    sess: str | None
 
 
 def generate_course_class():
@@ -281,9 +282,6 @@ def parse_course_search_xml(response_xml: str):
     ] for tr in table.iter('tr')]
     norm_headings = list(map(normalize, headings))
 
-    _fields = [(f, str) for f in norm_headings + ['name', 'topic'] if f]
-    Section = make_dataclass('Section', _fields)
-
     courses = defaultdict(list)
     name = None
     for r in rows:
@@ -291,8 +289,9 @@ def parse_course_search_xml(response_xml: str):
             name = r[0]
         elif len(r) == len(headings):  # course info
             assert name is not None, 'Found section before course name'
-            kwargs = {k: v or None for k, v in zip(norm_headings, r) if k}
-            courses[name].append(Section(name=name, topic=None, **kwargs))
+            kwargs = {'sess': None}
+            kwargs |= {k: v or None for k, v in zip(norm_headings, r) if k}
+            courses[name].append(Course(name=name, topic=None, **kwargs))
         elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
             assert name is not None, 'Found topic before course name'
             t = r[1]
