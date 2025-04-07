@@ -227,18 +227,19 @@ class CampusNet:
 
     def class_details(self, termNbr, classNbr, acad, cache=True):
 
-        def retrieve_xml():
+        def process():
             if not cache:
-                return query()
+                return parse_course_details_xml(query())
 
             if path.exists():
-                return open(path).read()
+                return parse_course_details_xml(open(path).read())
 
             resp_xml = query()
+            result = parse_course_details_xml(resp_xml)
             print('Caching results to', path)
             path.parent.mkdir(parents=True, exist_ok=True)
             open(path, 'w').write(resp_xml)
-            return resp_xml
+            return result
 
         def query():
             paramsGet = {
@@ -253,7 +254,7 @@ class CampusNet:
                 params=paramsGet).text
 
         path = self.cachedir / 'details' / f'{termNbr}_{classNbr}_{acad}.xml'
-        return parse_course_details_xml(retrieve_xml())
+        return process()
 
 
 def parse_course_search_xml(response_xml: str):
