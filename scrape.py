@@ -177,10 +177,9 @@ class CampusNet:
 
         if text := re.search(pattern, r.text, re.DOTALL):
             term_list = re.findall('value="(.*?)"', text.group(1))
-            if cache:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                with open(path, 'w') as f:
-                    f.write('\n'.join(term_list))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, 'w') as f:
+                f.write('\n'.join(term_list))
             return term_list
 
         raise Exception('Failed to find terms on search registration page')
@@ -189,12 +188,9 @@ class CampusNet:
         '''Retrieves a course list from CampusNet or from local cache'''
 
         def retrieve_xml():
-            if not cache:
-                return self._search_courses(term, subject, acad)
-
             path = self.cachedir / 'search' / f'{term}_{subject}.xml'
 
-            if path.exists():
+            if cache and path.exists():
                 return open(path).read()
 
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -242,10 +238,7 @@ class CampusNet:
     def class_details(self, termNbr, classNbr, acad, cache=True):
 
         def process():
-            if not cache:
-                return parse_course_details_xml(query())
-
-            if path.exists():
+            if cache and path.exists():
                 return parse_course_details_xml(open(path).read())
 
             resp_xml = query()
