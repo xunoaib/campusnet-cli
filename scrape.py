@@ -148,7 +148,6 @@ class CampusNet:
             "AJAXClassName": "AJAX.Ajax_ClassSearch",
             "location": "",
             "term": term,
-            "sid": "0.47412165428294384"
         }
         response = self.session.get(
             "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
