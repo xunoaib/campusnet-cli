@@ -218,6 +218,7 @@ def parse_course_search_xml(response_xml: str):
             kwargs = {k: v or None for k, v in zip(norm_headings, r) if k}
             courses[name].append(Course(name=name, topic=None, **kwargs))
         elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
+            assert name is not None, 'Found topic before course name'
             t = r[1]
             assert t.startswith('Topic: '), f'Expected "Topic:", but got: {t}'
             courses[name][-1].topic = t.split(': ', 1)[-1]
