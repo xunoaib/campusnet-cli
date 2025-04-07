@@ -377,14 +377,6 @@ def print_courses(courses: dict[str, list[Course]]):
 
 def main():
 
-    def debug():
-        r = net._search_courses(terms[0], subjects[0], 'GRAD')
-        print(r)
-        exit()
-
-        print(net.class_details('114', '2644', acad='GRAD'))
-        print(net.class_details('115', '5118', acad='GRAD'))
-
     net = CampusNet(USERNAME, PASSWORD)
     net.login()
 
@@ -396,7 +388,12 @@ def main():
 
     acad = DEFAULT_ACAD
 
-    debug()
+    # r = net._search_courses(terms[0], subjects[0], 'GRAD')
+    # print(r)
+    # exit()
+    #
+    # print(net.class_details('114', '2644', acad='GRAD'))
+    # print(net.class_details('115', '5118', acad='GRAD'))
 
     # retrieve high-level course listings
     all_sections = []
