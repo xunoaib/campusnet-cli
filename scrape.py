@@ -43,18 +43,14 @@ class Course:
 def generate_course_class():
     '''This can help regenerate course fields if they ever change'''
 
-    COURSE_SEC_FIELDS = list(
+    headings = list(
         map(normalize, [
             'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date',
             'Days', 'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
-        ]))
+        ])) + ['name', 'topic']
 
-    _course_fields = [
-        ('name', str),  # course name
-        ('topic', str),  # special topic (if applicable)
-    ] + [(name, str) for name in COURSE_SEC_FIELDS]
-
-    return make_dataclass('Course', _course_fields)
+    fields = [(f, str) for f in headings]
+    return make_dataclass('Course', fields)
 
 
 class CampusNet:
