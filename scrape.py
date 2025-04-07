@@ -54,7 +54,9 @@ class CampusNet:
         "Sec-Fetch-Mode": "cors"
     }
 
-    def __init__(self):
+    def __init__(self, username=None, password=None):
+        self.username = username
+        self.password = password
         self.session = requests.Session()
 
     @property
@@ -63,7 +65,12 @@ class CampusNet:
             'https://campusnet.csuohio.edu/sec/personal/persdata.jsp')
         return 'Session Expired' not in r.text
 
-    def login(self, username, password):
+    def login(self, username=None, password=None):
+        if username: self.username = username
+        if password: self.password = password
+        if not self.username or not self.password:
+            raise Exception('Missing login credentials')
+
         paramsPost = {
             "Submit": "Login",
             "pwd": password,
