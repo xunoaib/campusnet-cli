@@ -4,7 +4,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from dataclasses import dataclass, make_dataclass
+from dataclasses import asdict, dataclass, make_dataclass
 from itertools import pairwise
 from pathlib import Path
 
@@ -23,7 +23,7 @@ DEFAULT_ACAD = os.environ.get('DEFAULT_ACAD', 'GRAD')
 
 
 @dataclass
-class Course:
+class CourseSearchResult:
     name: str | None
     topic: str | None
     enrl: str | None
@@ -42,17 +42,26 @@ class Course:
 
 
 @dataclass
-class CourseDetails:
-    session: str
-    consent: str
-    component: str
-    status: str
-    credits: str
-    enrollment: str
-    lastdaytoadd: str
-    lastdaytodrop: str
-    lastdaytowithdraw: str
-    description: str
+class CourseDetailResult:
+    session: str | None
+    consent: str | None
+    component: str | None
+    status: str | None
+    credits: str | None
+    enrollment: str | None
+    lastdaytoadd: str | None
+    lastdaytodrop: str | None
+    lastdaytowithdraw: str | None
+    description: str | None
+
+
+@dataclass
+class Course(CourseDetailResult, CourseSearchResult):
+
+    @classmethod
+    def from_instances(cls, search: CourseSearchResult,
+                       details: CourseDetailResult):
+        return cls(**asdict(search) | asdict(details))
 
 
 def generate_course_class():
@@ -65,7 +74,7 @@ def generate_course_class():
         ])) + ['name', 'topic']
 
     fields = [(f, str) for f in headings]
-    return make_dataclass('Course', fields)
+    return make_dataclass('CourseSearchResult', fields)
 
 
 def normalize(s: str):
@@ -265,7 +274,8 @@ class CampusNet:
         return process()
 
 
-def parse_course_search_xml(response_xml: str) -> dict[str, list[Course]]:
+def parse_course_search_xml(
+        response_xml: str) -> dict[str, list[CourseSearchResult]]:
     '''Constructs a dictionary of course names to sections given an XML
     response from the course search endpoint'''
 
@@ -300,7 +310,8 @@ def parse_course_search_xml(response_xml: str) -> dict[str, list[Course]]:
             assert name is not None, 'Found section before course name'
             kwargs = {'sess': None}
             kwargs |= {k: v or None for k, v in zip(norm_headings, r) if k}
-            courses[name].append(Course(name=name, topic=None, **kwargs))
+            courses[name].append(
+                CourseSearchResult(name=name, topic=None, **kwargs))
         elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
             assert name is not None, 'Found topic before course name'
             t = r[1]
@@ -356,10 +367,10 @@ def parse_course_details_xml(response_xml: str):
                         props['Description'] = items[1]
 
     fields = {normalize(k): v for k, v in props.items()}
-    return CourseDetails(**fields)
+    return CourseDetailResult(**fields)
 
 
-def print_courses(courses: dict[str, list[Course]]):
+def print_courses(courses: dict[str, list[CourseSearchResult]]):
     table_headers = {
         'Days': lambda s: s.days,
         'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
@@ -438,6 +449,9 @@ def main():
                 all_sections += [(term, subject, section)
                                  for section in sections]
 
+    # retrieve and print course details
+    combined = []
+
     for term, subject, section in all_sections:
         if not section.classnr:
             print(
@@ -449,10 +463,17 @@ def main():
             details = net.class_details(termNbr,
                                         section.classnr,
                                         acad=args.acad)
+            combined.append(
+                [term, subject,
+                 Course.from_instances(section, details)])
         except Exception as exc:
             raise Exception(
                 f'Error parsing course details for: {term} {subject} {section}'
             ) from exc
+
+    for x in combined:
+        print(x[-1])
+        print()
 
 
 if __name__ == '__main__':
