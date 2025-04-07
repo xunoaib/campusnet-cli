@@ -257,7 +257,7 @@ class CampusNet:
         return process()
 
 
-def parse_course_search_xml(response_xml: str):
+def parse_course_search_xml(response_xml: str) -> dict[str, list[Course]]:
     '''Constructs a dictionary of course names to sections given an XML
     response from the course search endpoint'''
 
