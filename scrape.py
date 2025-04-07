@@ -104,7 +104,21 @@ class CampusNet:
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!\n%s' % response.text)
 
-    def subject_list(self, term, acad=DEFAULT_ACAD):
+    def subjects(self, term, acad=DEFAULT_ACAD, cache=True):
+
+        def parse(xml: str):
+            root = ET.fromstring(xml)
+            subject_list = root.find('SubjectList')
+            if subject_list is None:
+                return []
+            return [c.text for c in subject_list if c.tag == 'Subject']
+
+        path = self.cachedir / f'subjects_{term}_{acad}.txt'
+
+        if cache and path.exists():
+            with open(path) as f:
+                return parse(f.read())
+
         paramsGet = {
             "college": "",
             "subject": "",
@@ -120,7 +134,12 @@ class CampusNet:
             params=paramsGet,
             headers=self.headers)
 
-        return response.text  # XML
+        if cache:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, 'w') as f:
+                f.write(response.text)
+
+        return parse(response.text)
 
     def terms(self, cache=True):
         '''Visits the course search page and returns available terms'''
@@ -267,6 +286,7 @@ def main():
     net.login()
 
     print(net.terms())
+    print(net.subjects(terms[0]))
     exit(0)
 
     for term in terms:
