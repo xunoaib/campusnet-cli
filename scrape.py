@@ -3,7 +3,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from dataclasses import make_dataclass
+from dataclasses import dataclass, make_dataclass
 from pathlib import Path
 
 import requests
