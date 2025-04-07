@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
-import pickle
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import make_dataclass
 from pathlib import Path
 
+import requests
 import tabulate
 from dotenv import load_dotenv
 from lxml import html
@@ -15,10 +15,6 @@ load_dotenv()
 
 USERNAME = os.environ.get('CSU_USERNAME')
 PASSWORD = os.environ.get('CSU_PASSWORD')
-
-assert USERNAME and PASSWORD
-
-import requests
 
 
 def normalize(s: str):
