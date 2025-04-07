@@ -248,15 +248,12 @@ def parse_course_search_xml(response_xml: str):
     ] for tr in table.iter('tr')]
     norm_headings = list(map(normalize, headings))
 
-    print(headings)
-
     _fields = [(f, str) for f in norm_headings + ['name', 'topic'] if f]
     Section = make_dataclass('Section', _fields)
 
     courses = defaultdict(list)
     name = None
     for r in rows:
-        print(r, len(r))
         if len(r) == 1:  # course title, ie: CIS  895 Doctoral Research
             name = r[0]
         elif len(r) == len(headings):  # course info
