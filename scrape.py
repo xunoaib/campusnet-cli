@@ -122,8 +122,14 @@ class CampusNet:
 
         return response.text  # XML
 
-    def get_terms(self):
-        '''visits the search registration page showing available terms'''
+    def terms(self, cache=True):
+        '''Visits the course search page and returns available terms'''
+
+        path = self.cachedir / 'terms.txt'
+
+        if cache and path.exists():
+            with open(path) as f:
+                return [line.strip() for line in f if line.strip()]
 
         r = self.session.get(
             'https://campusnet.csuohio.edu/sec/classsearch/search_reg.jsp')
@@ -133,7 +139,12 @@ class CampusNet:
         pattern = re.escape(text_start) + '(.*?)' + re.escape(text_end)
 
         if text := re.search(pattern, r.text, re.DOTALL):
-            return re.findall('value="(.*?)"', text.group(1))
+            term_list = re.findall('value="(.*?)"', text.group(1))
+            if cache:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with open(path, 'w') as f:
+                    f.write('\n'.join(term_list))
+            return term_list
 
         raise Exception('Failed to find terms on search registration page')
 
@@ -254,6 +265,9 @@ def main():
 
     net = CampusNet(USERNAME, PASSWORD)
     net.login()
+
+    print(net.terms())
+    exit(0)
 
     for term in terms:
         for subject in subjects:
