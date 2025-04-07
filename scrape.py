@@ -4,6 +4,7 @@ import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass, make_dataclass
+from itertools import pairwise
 from pathlib import Path
 
 import requests
@@ -223,6 +224,36 @@ class CampusNet:
         )
         return response.text
 
+    def class_details(self, termNbr, classNbr, acad, cache=True):
+
+        def retrieve_xml():
+            if not cache:
+                return query()
+
+            if path.exists():
+                return open(path).read()
+
+            resp_xml = query()
+            print('Caching results to', path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            open(path, 'w').write(resp_xml)
+            return resp_xml
+
+        def query():
+            paramsGet = {
+                "classNbr": classNbr,
+                "acad": acad,  # required but unused?
+                "AJAXClassName": "AJAX.Ajax_ClassSearch",
+                "function": "getClassDetails",
+                "term": termNbr,
+            }
+            return self.session.get(
+                "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
+                params=paramsGet).text
+
+        path = self.cachedir / 'details' / f'{termNbr}_{classNbr}_{acad}.xml'
+        return parse_course_details_xml(retrieve_xml())
+
 
 def parse_course_search_xml(response_xml: str):
     '''Constructs a dictionary of course names to sections given an XML
@@ -274,10 +305,52 @@ def parse_course_search_xml(response_xml: str):
     return dict(courses)
 
 
+def parse_course_details_xml(response_xml: str):
+    '''Parses a subset of details for an individual course.
+    More data is available but not yet parsed, such as:
+        - combined courses
+        - description
+        - data already available from course search
+    '''
+
+    root = ET.fromstring(response_xml)
+
+    error_code = root.find('ErrorCode')
+    if error_code is not None:
+        raise Exception(f'API Error:\n{response_xml}')
+
+    classdetails = root.find('ClassDetails')
+    if classdetails is None or not classdetails.text:
+        raise Exception(
+            f'Expected ClassDetails tag in search response:\n{response_xml}')
+
+    div = html.fromstring(classdetails.text)
+    assert div.tag == 'div', f'Expected div tag, got: {div.tag}'
+
+    # construct top-level "Attribute: Value" mappings
+    first_table = div.find('table/tr/td/table')
+    first_table_tds = [td.text for td in first_table.iter('td')]
+
+    props = {}
+    for td1, td2 in pairwise(first_table_tds):
+        if td1.endswith(':'):
+            props[td1[:-1]] = td2.strip()
+
+    # extract course description (very messily)
+    for table in div.find('table/tr/td').iter('table'):
+        for tr in table.iter('tr'):
+            for td in table.iter('td'):
+                if items := [t.strip() for t in td.itertext() if t.strip()]:
+                    if items[0] == 'Course Description:':
+                        props['Description'] = items[1]
+
+    return props
+
+
 def print_courses(courses: dict[str, list[Course]]):
     table_headers = {
-        'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
         'Days': lambda s: s.days,
+        'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
         'Time': lambda s: s.time,
         'Enrolled': lambda s: s.enrltot,
         'ClassNr': lambda s: s.classnr,
@@ -294,13 +367,18 @@ def print_courses(courses: dict[str, list[Course]]):
 
 def main():
     net = CampusNet(USERNAME, PASSWORD)
-    net.login()
+    # net.login()
 
     terms = ['114-Fall 2025', '115-Spr 2026']
     # terms = net.terms()
 
     subjects = ['CIS', 'STA']
     # subjects = net.subjects(terms[1])
+
+    # Show course details
+    details = net.class_details('114', '2659', acad='GRAD')
+    print(details)
+    exit()
 
     acad = DEFAULT_ACAD
 
