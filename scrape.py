@@ -57,6 +57,12 @@ class CampusNet:
     def __init__(self):
         self.session = requests.Session()
 
+    @property
+    def authenticated(self):
+        r = self.session.get(
+            'https://campusnet.csuohio.edu/sec/personal/persdata.jsp')
+        return 'Session Expired' not in r.text
+
     def login(self, username, password):
         paramsPost = {
             "Submit": "Login",
