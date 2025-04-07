@@ -40,6 +40,20 @@ class Course:
     sess: str | None
 
 
+@dataclass
+class CourseDetails:
+    session: str
+    consent: str
+    component: str
+    status: str
+    credits: str
+    enrollment: str
+    lastdaytoadd: str
+    lastdaytodrop: str
+    lastdaytowithdraw: str
+    description: str
+
+
 def generate_course_class():
     '''This can help regenerate course fields if they ever change'''
 
@@ -344,7 +358,8 @@ def parse_course_details_xml(response_xml: str):
                     if items[0] == 'Course Description:':
                         props['Description'] = items[1]
 
-    return props
+    fields = {normalize(k): v for k, v in props.items()}
+    return CourseDetails(**fields)
 
 
 def print_courses(courses: dict[str, list[Course]]):
@@ -395,7 +410,7 @@ def main():
 
     # retrieve course details
     for term, subject, section in all_sections:
-        net.class_details(term.split('-')[0], section.classnr, acad)
+        details = net.class_details(term.split('-')[0], section.classnr, acad)
 
 
 if __name__ == '__main__':
