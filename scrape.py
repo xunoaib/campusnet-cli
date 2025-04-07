@@ -305,7 +305,7 @@ def main():
     acad = DEFAULT_ACAD
 
     for term in terms:
-        subjects = net.subjects(term)
+        # subjects = net.subjects(term)
         for subject in subjects:
             courses = net.find_courses(term, subject, acad=acad, cache=True)
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
