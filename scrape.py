@@ -17,11 +17,6 @@ USERNAME = os.environ.get('CSU_USERNAME')
 PASSWORD = os.environ.get('CSU_PASSWORD')
 
 
-def normalize(s: str):
-    s = s.strip().lower()
-    return re.sub(r'\W|^(?=\d)', '', s)
-
-
 @dataclass
 class Course:
     name: str
@@ -51,6 +46,11 @@ def generate_course_class():
 
     fields = [(f, str) for f in headings]
     return make_dataclass('Course', fields)
+
+
+def normalize(s: str):
+    s = s.strip().lower()
+    return re.sub(r'\W|^(?=\d)', '', s)
 
 
 class CampusNet:
