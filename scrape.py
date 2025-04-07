@@ -327,7 +327,10 @@ def parse_course_details_xml(response_xml: str):
         - data already available from course search
     '''
 
-    root = ET.fromstring(response_xml)
+    try:
+        root = ET.fromstring(response_xml)
+    except Exception as exc:
+        raise Exception('XML Parse Error: %s' % (response_xml, )) from exc
 
     error_code = root.find('ErrorCode')
     if error_code is not None:
@@ -410,7 +413,18 @@ def main():
 
     # retrieve course details
     for term, subject, section in all_sections:
-        details = net.class_details(term.split('-')[0], section.classnr, acad)
+        if not section.classnr:
+            print(
+                f'\033[93mWARN: Course {section.name} is missing a course number\033[0m'
+            )
+            continue
+        try:
+            termNbr = term.split('-')[0]
+            details = net.class_details(termNbr, section.classnr, acad)
+        except Exception as exc:
+            raise Exception(
+                f'Error parsing course details for: {term} {subject} {section}'
+            )
 
 
 if __name__ == '__main__':
