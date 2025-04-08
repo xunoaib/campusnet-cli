@@ -422,11 +422,21 @@ def main():
     net = CampusNet(args.username, args.password)
     net.login()
 
+    all_terms = net.terms(load_cache=False)
+
     if not args.terms:
         print(f'\n\033[93;1m# Available Terms\033[0m\n')
         for t in net.terms(load_cache=not args.no_cache):
             print(t)
         return
+
+    # filter terms
+    args.terms = [t.lower() for t in args.terms]
+    args.terms = [
+        t for t in all_terms if t.lower() in args.terms or any(
+            re.search(p,
+                      t.split('-', 1)[-1], re.IGNORECASE) for p in args.terms)
+    ]
 
     if not args.subjects:
         print(f'\n\033[93;1m# Available Subjects for {args.terms[0]}\033[0m\n')
