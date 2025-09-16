@@ -448,6 +448,13 @@ def argument_parser():
         action='store_true',
         help="Disable cache usage for course listings"
     )
+    parser.add_argument(
+        '--format',
+        '-f',
+        choices=['table', 'object'],
+        default='table',
+        help='Course output format (default: table)'
+    )
     return parser
 
 
@@ -516,15 +523,18 @@ def main():
             courses = net.find_courses(
                 term, subject, acad=args.acad, load_cache=not args.no_cache
             )
-            print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
-            print_courses(courses)
+
+            if args.format == 'table':
+                print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
+                print_courses(courses)
 
             for sections in courses.values():
                 all_sections += [
                     (term, subject, section) for section in sections
                 ]
 
-    display_course_details(all_sections, args, net, subject, term)
+    if args.format == 'object':
+        display_course_details(all_sections, args, net, subject, term)
 
 
 if __name__ == '__main__':
