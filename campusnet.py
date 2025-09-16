@@ -59,8 +59,9 @@ class CourseDetailResult:
 class Course(CourseDetailResult, CourseSearchResult):
 
     @classmethod
-    def from_instances(cls, search: CourseSearchResult,
-                       details: CourseDetailResult):
+    def from_instances(
+        cls, search: CourseSearchResult, details: CourseDetailResult
+    ):
         return cls(**asdict(search) | asdict(details))
 
 
@@ -68,10 +69,14 @@ def generate_course_class():
     '''This can help regenerate course fields if they ever change'''
 
     headings = list(
-        map(normalize, [
-            'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date',
-            'Days', 'Time', 'Room', 'Instructor', 'Comp.', 'Stat.', 'Enrl/Tot'
-        ])) + ['name', 'topic']
+        map(
+            normalize, [
+                'Enrl.', 'Det.', 'ClassNr', 'Sect.', 'Begin Date - End Date',
+                'Days', 'Time', 'Room', 'Instructor', 'Comp.', 'Stat.',
+                'Enrl/Tot'
+            ]
+        )
+    ) + ['name', 'topic']
 
     fields = [(f, str) for f in headings]
     return make_dataclass('CourseSearchResult', fields)
@@ -107,12 +112,15 @@ class CampusNet:
     @property
     def authenticated(self):
         r = self.session.get(
-            'https://campusnet.csuohio.edu/sec/personal/persdata.jsp')
+            'https://campusnet.csuohio.edu/sec/personal/persdata.jsp'
+        )
         return 'Session Expired' not in r.text
 
     def login(self, username=None, password=None):
-        if username: self.username = username
-        if password: self.password = password
+        if username:
+            self.username = username
+        if password:
+            self.password = password
         if not self.username or not self.password:
             raise Exception('Missing login credentials')
 
@@ -127,7 +135,8 @@ class CampusNet:
         response = self.session.post(
             "https://campusnet.csuohio.edu/ps8verify.jsp",
             data=paramsPost,
-            headers=self.headers)
+            headers=self.headers
+        )
 
         if 'Login in progress' not in response.text:
             raise Exception('Login failed!\n%s' % response.text)
@@ -161,7 +170,8 @@ class CampusNet:
         response = self.session.get(
             "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
             params=paramsGet,
-            headers=self.headers)
+            headers=self.headers
+        )
 
         if load_cache:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -180,7 +190,8 @@ class CampusNet:
                 return [line.strip() for line in f if line.strip()]
 
         r = self.session.get(
-            'https://campusnet.csuohio.edu/sec/classsearch/search_reg.jsp')
+            'https://campusnet.csuohio.edu/sec/classsearch/search_reg.jsp'
+        )
 
         text_start = '<!--  Display Term Choices'
         text_end = '<!--  Display Career Choices'
@@ -237,7 +248,8 @@ class CampusNet:
         response = self.session.get(
             "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
             params=paramsGet,
-            headers=self.headers)
+            headers=self.headers
+        )
 
         assert response.ok, 'HTTP Error: %d %s' % (
             response.status_code,
@@ -268,14 +280,16 @@ class CampusNet:
             }
             return self.session.get(
                 "https://campusnet.csuohio.edu/AJAX/AJAXMasterServlet",
-                params=paramsGet).text
+                params=paramsGet
+            ).text
 
         path = self.cachedir / 'details' / f'{termNbr}_{classNbr}_{acad}.xml'
         return process()
 
 
 def parse_course_search_xml(
-        response_xml: str) -> dict[str, list[CourseSearchResult]]:
+    response_xml: str
+) -> dict[str, list[CourseSearchResult]]:
     '''Constructs a dictionary of course names to sections given an XML
     response from the course search endpoint'''
 
@@ -291,14 +305,16 @@ def parse_course_search_xml(
     classlist = root.find('ClassList')
     if classlist is None or not classlist.text:
         raise Exception(
-            f'Expected ClassList tag in search response:\n{response_xml}')
+            f'Expected ClassList tag in search response:\n{response_xml}'
+        )
 
     table = html.fromstring(classlist.text)
     assert table.tag == 'table', f'Expected table tag, got: {table.tag}'
 
-    headings, *rows = [[
-        ''.join(td.itertext()).strip() for td in tr.iter('td')
-    ] for tr in table.iter('tr')]
+    headings, *rows = [
+        [''.join(td.itertext()).strip() for td in tr.iter('td')]
+        for tr in table.iter('tr')
+    ]
     norm_headings = list(map(normalize, headings))
 
     courses = defaultdict(list)
@@ -311,7 +327,8 @@ def parse_course_search_xml(
             kwargs = {'sess': None}
             kwargs |= {k: v or None for k, v in zip(norm_headings, r) if k}
             courses[name].append(
-                CourseSearchResult(name=name, topic=None, **kwargs))
+                CourseSearchResult(name=name, topic=None, **kwargs)
+            )
         elif len(r) == 2 and r[0] == '':  # special topic (has a separate row)
             assert name is not None, 'Found topic before course name'
             t = r[1]
@@ -344,7 +361,8 @@ def parse_course_details_xml(response_xml: str):
     classdetails = root.find('ClassDetails')
     if classdetails is None or not classdetails.text:
         raise Exception(
-            f'Expected ClassDetails tag in search response:\n{response_xml}')
+            f'Expected ClassDetails tag in search response:\n{response_xml}'
+        )
 
     div = html.fromstring(classdetails.text)
     assert div.tag == 'div', f'Expected div tag, got: {div.tag}'
@@ -392,30 +410,39 @@ def print_courses(courses: dict[str, list[CourseSearchResult]]):
 def main():
 
     parser = argparse.ArgumentParser(
-        description="Retrieve course listings and details from CampusNet.")
-    parser.add_argument('--username',
-                        default=USERNAME,
-                        help="Your CampusNet username")
-    parser.add_argument('--password',
-                        default=PASSWORD,
-                        help="Your CampusNet password")
-    parser.add_argument('--terms',
-                        '-t',
-                        nargs='*',
-                        default=['114-Fall 2025', '115-Spr 2026'],
-                        help="List of terms (e.g., '114-Fall 2025')")
-    parser.add_argument('--subjects',
-                        '-s',
-                        nargs='*',
-                        default=['CIS', 'STA'],
-                        help="List of subjects (e.g., 'CIS', 'STA')")
-    parser.add_argument('--acad',
-                        default=DEFAULT_ACAD,
-                        help="Academic career level (e.g., 'GRAD', 'UGRD')")
-    parser.add_argument('--no-cache',
-                        '-n',
-                        action='store_true',
-                        help="Disable cache usage for course listings")
+        description="Retrieve course listings and details from CampusNet."
+    )
+    parser.add_argument(
+        '--username', default=USERNAME, help="Your CampusNet username"
+    )
+    parser.add_argument(
+        '--password', default=PASSWORD, help="Your CampusNet password"
+    )
+    parser.add_argument(
+        '--terms',
+        '-t',
+        nargs='*',
+        default=['114-Fall 2025', '115-Spr 2026'],
+        help="List of terms (e.g., '114-Fall 2025')"
+    )
+    parser.add_argument(
+        '--subjects',
+        '-s',
+        nargs='*',
+        default=['CIS', 'STA'],
+        help="List of subjects (e.g., 'CIS', 'STA')"
+    )
+    parser.add_argument(
+        '--acad',
+        default=DEFAULT_ACAD,
+        help="Academic career level (e.g., 'GRAD', 'UGRD')"
+    )
+    parser.add_argument(
+        '--no-cache',
+        '-n',
+        action='store_true',
+        help="Disable cache usage for course listings"
+    )
 
     args = parser.parse_args()
 
@@ -435,29 +462,30 @@ def main():
     args.terms = [
         t for t in all_terms if t.lower() in args.terms or any(
             re.search(p,
-                      t.split('-', 1)[-1], re.IGNORECASE) for p in args.terms)
+                      t.split('-', 1)[-1], re.IGNORECASE) for p in args.terms
+        )
     ]
 
     if not args.subjects:
         print(f'\n\033[93;1m# Available Subjects for {args.terms[0]}\033[0m\n')
-        subjects = net.subjects(args.terms[0],
-                                args.acad,
-                                load_cache=not args.no_cache)
+        subjects = net.subjects(
+            args.terms[0], args.acad, load_cache=not args.no_cache
+        )
         print(', '.join(subjects))
 
     all_sections = []
     for term in args.terms:
         for subject in args.subjects:
-            courses = net.find_courses(term,
-                                       subject,
-                                       acad=args.acad,
-                                       load_cache=not args.no_cache)
+            courses = net.find_courses(
+                term, subject, acad=args.acad, load_cache=not args.no_cache
+            )
             print(f'\n\033[93;1m# {term}: {subject}\033[0m\n')
             print_courses(courses)
 
             for sections in courses.values():
-                all_sections += [(term, subject, section)
-                                 for section in sections]
+                all_sections += [
+                    (term, subject, section) for section in sections
+                ]
 
     # retrieve and print course details
     combined = []
@@ -470,12 +498,13 @@ def main():
             continue
         try:
             termNbr = term.split('-')[0]
-            details = net.class_details(termNbr,
-                                        section.classnr,
-                                        acad=args.acad)
+            details = net.class_details(
+                termNbr, section.classnr, acad=args.acad
+            )
             combined.append(
                 [term, subject,
-                 Course.from_instances(section, details)])
+                 Course.from_instances(section, details)]
+            )
         except Exception as exc:
             raise Exception(
                 f'Error parsing course details for: {term} {subject} {section}'
