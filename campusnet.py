@@ -22,6 +22,10 @@ PASSWORD = os.environ.get('CSU_PASSWORD')
 DEFAULT_ACAD = os.environ.get('DEFAULT_ACAD', 'GRAD')
 
 
+class CampusException(Exception):
+    ...
+
+
 @dataclass
 class CourseSearchResult:
     name: str | None
@@ -122,7 +126,7 @@ class CampusNet:
         if password:
             self.password = password
         if not self.username or not self.password:
-            raise Exception('Missing login credentials')
+            raise CampusException('Missing login credentials')
 
         paramsPost = {
             "Submit": "Login",
@@ -139,7 +143,7 @@ class CampusNet:
         )
 
         if 'Login in progress' not in response.text:
-            raise Exception('Login failed!\n%s' % response.text)
+            raise CampusException('Login failed!\n%s' % response.text)
 
     def subjects(self, term, acad=DEFAULT_ACAD, load_cache=True) -> list[str]:
 
@@ -204,7 +208,9 @@ class CampusNet:
                 f.write('\n'.join(term_list))
             return term_list
 
-        raise Exception('Failed to find terms on search registration page')
+        raise CampusException(
+            'Failed to find terms on search registration page'
+        )
 
     def find_courses(self, term, subject, acad=DEFAULT_ACAD, load_cache=True):
         '''Retrieves a course list from CampusNet or from local cache'''
@@ -300,11 +306,11 @@ def parse_course_search_xml(
         if error_code.text == 'CSTCLS_NOCL2':
             print('WARNING: No classes found')
             return {}
-        raise Exception(f'API Error:\n{response_xml}')
+        raise CampusException(f'API Error:\n{response_xml}')
 
     classlist = root.find('ClassList')
     if classlist is None or not classlist.text:
-        raise Exception(
+        raise CampusException(
             f'Expected ClassList tag in search response:\n{response_xml}'
         )
 
@@ -356,11 +362,11 @@ def parse_course_details_xml(response_xml: str):
 
     error_code = root.find('ErrorCode')
     if error_code is not None:
-        raise Exception(f'API Error:\n{response_xml}')
+        raise CampusException(f'API Error:\n{response_xml}')
 
     classdetails = root.find('ClassDetails')
     if classdetails is None or not classdetails.text:
-        raise Exception(
+        raise CampusException(
             f'Expected ClassDetails tag in search response:\n{response_xml}'
         )
 
