@@ -413,8 +413,7 @@ def print_courses(courses: dict[str, list[CourseSearchResult]]):
         print(tabulate.tabulate(table, headers=tuple(table_headers.keys())))
 
 
-def main():
-
+def argument_parser():
     parser = argparse.ArgumentParser(
         description="Retrieve course listings and details from CampusNet."
     )
@@ -449,8 +448,40 @@ def main():
         action='store_true',
         help="Disable cache usage for course listings"
     )
+    return parser
 
-    args = parser.parse_args()
+
+def display_course_details(all_sections, args, net, subject, term):
+    # retrieve and print course details
+    combined = []
+
+    for term, subject, section in all_sections:
+        if not section.classnr:
+            print(
+                f'\033[93mWARN: Course {section.name} is missing a course number\033[0m'
+            )
+            continue
+        try:
+            termNbr = term.split('-')[0]
+            details = net.class_details(
+                termNbr, section.classnr, acad=args.acad
+            )
+            combined.append(
+                [term, subject,
+                 Course.from_instances(section, details)]
+            )
+        except Exception as exc:
+            raise Exception(
+                f'Error parsing course details for: {term} {subject} {section}'
+            ) from exc
+
+    for x in combined:
+        print(x[-1])
+        print()
+
+
+def main():
+    args = argument_parser().parse_args()
 
     net = CampusNet(args.username, args.password)
     net.login()
@@ -493,32 +524,7 @@ def main():
                     (term, subject, section) for section in sections
                 ]
 
-    # retrieve and print course details
-    combined = []
-
-    for term, subject, section in all_sections:
-        if not section.classnr:
-            print(
-                f'\033[93mWARN: Course {section.name} is missing a course number\033[0m'
-            )
-            continue
-        try:
-            termNbr = term.split('-')[0]
-            details = net.class_details(
-                termNbr, section.classnr, acad=args.acad
-            )
-            combined.append(
-                [term, subject,
-                 Course.from_instances(section, details)]
-            )
-        except Exception as exc:
-            raise Exception(
-                f'Error parsing course details for: {term} {subject} {section}'
-            ) from exc
-
-    for x in combined:
-        print(x[-1])
-        print()
+    display_course_details(all_sections, args, net, subject, term)
 
 
 if __name__ == '__main__':
