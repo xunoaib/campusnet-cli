@@ -32,8 +32,9 @@ DEFAULT_ACAD=UGRD
 Run with Python:
 
 ```
-usage: campusnet.py [-h] [--username USERNAME] [--password PASSWORD] [--terms [TERMS ...]]
-                    [--subjects [SUBJECTS ...]] [--acad ACAD] [--no-cache]
+usage: campusnet.py [-h] [--username USERNAME] [--password PASSWORD]
+                    [--terms [TERMS ...]] [--subjects [SUBJECTS ...]]
+                    [--acad ACAD] [--no-cache] [--format {table,object}]
 
 Retrieve course listings and details from CampusNet.
 
@@ -47,6 +48,8 @@ options:
                         List of subjects (e.g., 'CIS', 'STA')
   --acad ACAD           Academic career level (e.g., 'GRAD', 'UGRD')
   --no-cache, -n        Disable cache usage for course listings
+  --format, -f {table,object}
+                        Course output format (default: table)
 ```
 
 ## 📝 Examples
@@ -60,4 +63,7 @@ python campusnet.py --terms '114-Fall 2025' --subjects
 
 # List courses for the given subject(s) and term(s)
 python campusnet.py --terms '114-Fall 2025' --subjects CIS
+
+# List courses with more detail (as objects)
+python campusnet.py --terms '114-Fall 2025' --subjects CIS --format object
 ```
