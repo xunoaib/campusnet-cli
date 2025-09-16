@@ -3,7 +3,7 @@
 A command-line tool for scraping course listings and details from **Cleveland State University's CampusNet**.
 Supports retrieving available terms, subjects, courses, and detailed section information.
 
-## ✨ Features
+## Features
 
 * Log in with your CampusNet credentials
 * List available terms and subjects
@@ -12,7 +12,7 @@ Supports retrieving available terms, subjects, courses, and detailed section inf
 * Tabular output with `tabulate`
 * Optional caching for faster repeated queries
 
-## 🔑 Environment Variables
+## Environment Variables
 
 You should define your CampusNet credentials using the following environment variables (or pass them as arguments).
 These can be set directly in your shell or placed in a `.env` file at the project root.
@@ -27,7 +27,7 @@ DEFAULT_ACAD=UGRD
 * `CSU_PASSWORD` – your CampusNet password
 * `DEFAULT_ACAD` – optional; academic level (`UGRD`, `GRAD`, `LAW`, `CNED`). Defaults to `GRAD`.
 
-## 🚀 Usage
+## Usage
 
 Run with Python:
 
@@ -52,7 +52,7 @@ options:
                         Course output format (default: table)
 ```
 
-## 📝 Examples
+## Examples
 
 ```sh
 # List available terms (semesters)
