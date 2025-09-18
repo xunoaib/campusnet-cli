@@ -395,9 +395,24 @@ def parse_course_details_xml(response_xml: str):
 
 
 def print_courses(courses: dict[str, list[CourseSearchResult]]):
+
+    def format_name(s: CourseSearchResult):
+        if not s.topic:
+            return s.name
+
+        if re.match(
+            r'To enroll in .*?, first select from the class\(es\) above\.You will then be required to select from the related class\(es\) below.',
+            s.topic,
+            flags=re.DOTALL
+        ):
+            return s.name
+
+        assert s.name, 'name is None or blank'
+        return s.name + ' - ' + s.topic
+
     table_headers = {
         'Days': lambda s: s.days,
-        'Name': lambda s: s.name + (' - ' + s.topic if s.topic else ''),
+        'Name': format_name,
         'Time': lambda s: s.time,
         'Enrolled': lambda s: s.enrltot,
         'ClassNr': lambda s: s.classnr,
